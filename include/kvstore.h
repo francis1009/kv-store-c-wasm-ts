@@ -12,7 +12,7 @@ typedef enum {
 	KV_ERROR_UNKNOWN = 5
 } KVStatus;
 
-typedef struct {
+typedef struct KVEntry {
 	char *key;
 	char *value;
 	struct KVEntry *next;

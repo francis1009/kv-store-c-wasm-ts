@@ -1,5 +1,7 @@
 #include "kvstore.h"
 
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #define INITIAL_CAPACITY 32
@@ -14,6 +16,7 @@ static unsigned long hash(const char *key) {
 }
 
 static int resize(KVStore *store) {
+	(void) store;
 	printf("Resized");
 	return 0;
 }
@@ -34,6 +37,23 @@ KVStore *kvstore_init(void) {
 }
 
 void kvstore_destroy(KVStore *store) {
+	if (store == NULL) {
+		return;
+	}
+
+	for (size_t i = 0; i < store->capacity; i++) {
+		KVEntry *entry = store->entries[i];
+		while (entry != NULL) {
+			KVEntry *next_entry = entry->next;
+			free(entry->key);
+			free(entry->value);
+			free(entry);
+			entry = next_entry;
+		}
+	}
+
+	free(store->entries);
+	free(store);
 }
 
 KVStatus kvstore_set(KVStore *store, const char *key, const char *value) {
@@ -57,7 +77,7 @@ KVStatus kvstore_set(KVStore *store, const char *key, const char *value) {
 	}
 
 	if ((float) store->size / store->capacity >= 0.75) {
-		kvstore_resize(store);
+		resize(store);
 		index = h & (store->capacity - 1);
 	}
 
@@ -82,12 +102,14 @@ KVStatus kvstore_set(KVStore *store, const char *key, const char *value) {
 }
 
 KVStatus kvstore_delete(KVStore *store, const char *key) {
+	(void) store;
+	(void) key;
 	return KV_SUCCESS;
 }
 
 const char *kvstore_get(KVStore *store, const char *key) {
 	if (store == NULL || key == NULL) {
-		return KV_ERROR_INVALID_ARGUMENT;
+		return NULL;
 	}
 
 	unsigned long h = hash(key);
