@@ -16,8 +16,28 @@ static unsigned long hash(const char *key) {
 }
 
 static int resize(KVStore *store) {
-	(void) store;
-	printf("Resized");
+	size_t new_capacity = store->capacity * 2;
+	KVEntry **new_entries = calloc(new_capacity, sizeof(KVEntry *));
+	if (new_entries == NULL) {
+		return -1;
+	}
+
+	for (size_t i = 0; i < store->capacity; i++) {
+		KVEntry *entry = store->entries[i];
+		while (entry != NULL) {
+			KVEntry *next_entry = entry->next;
+			unsigned long h = hash(entry->key);
+			size_t new_index = h & (new_capacity - 1);
+			entry->next = new_entries[new_index];
+			new_entries[new_index] = entry;
+			entry = next_entry;
+		}
+	}
+
+	free(store->entries);
+	store->entries = new_entries;
+	store->capacity = new_capacity;
+
 	return 0;
 }
 
@@ -77,7 +97,9 @@ KVStatus kvstore_set(KVStore *store, const char *key, const char *value) {
 	}
 
 	if ((float) store->size / store->capacity >= 0.75) {
-		resize(store);
+		if (resize(store) != 0) {
+			return KV_ERROR_OUT_OF_MEMORY;
+		}
 		index = h & (store->capacity - 1);
 	}
 
@@ -102,9 +124,32 @@ KVStatus kvstore_set(KVStore *store, const char *key, const char *value) {
 }
 
 KVStatus kvstore_delete(KVStore *store, const char *key) {
-	(void) store;
-	(void) key;
-	return KV_SUCCESS;
+	if (store == NULL || key == NULL) {
+		return KV_ERROR_INVALID_ARGUMENT;
+	}
+
+	unsigned long h = hash(key);
+	size_t index = h & (store->capacity - 1);
+	KVEntry *curr_entry = store->entries[index];
+	KVEntry *prev_entry = NULL;
+	while (curr_entry != NULL) {
+		if (strcmp(curr_entry->key, key) == 0) {
+			if (prev_entry == NULL) {
+				store->entries[index] = curr_entry->next;
+			} else {
+				prev_entry->next = curr_entry->next;
+			}
+			free(curr_entry->key);
+			free(curr_entry->value);
+			free(curr_entry);
+			store->size--;
+			return KV_SUCCESS;
+		}
+		prev_entry = curr_entry;
+		curr_entry = curr_entry->next;
+	}
+
+	return KV_ERROR_KEY_NOT_FOUND;
 }
 
 const char *kvstore_get(KVStore *store, const char *key) {
