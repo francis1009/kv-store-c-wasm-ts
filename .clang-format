@@ -1,0 +1,74 @@
+# ===================================================================
+# .clang-format Configuration for a C Project
+# Based on LLVM style with specific customizations.
+# ===================================================================
+
+# Language: C
+BasedOnStyle: LLVM
+
+# --- Core User Requirements ---
+
+# Use hard tabs for indentation, not spaces.
+UseTab: Always
+# Each indentation level is 2 spaces wide.
+IndentWidth: 2
+# When aligning code, a tab character is treated as 2 spaces wide.
+TabWidth: 2
+# Maximum line length before wrapping.
+ColumnLimit: 80
+
+# --- Recommended Settings for Readability & Structure ---
+
+# Pointer alignment: place the '*' next to the variable (e.g., int *ptr).
+# Other options: Left (int* ptr), Middle (int * ptr).
+PointerAlignment: Right
+
+# Control brace wrapping. This keeps the LLVM style of attached braces.
+# e.g., if (condition) {
+BreakBeforeBraces: Attach
+BraceWrapping:
+  AfterFunction: true
+  AfterStruct: true
+  AfterEnum: true
+
+# Do not put short functions on a single line.
+# e.g., void func() { return; } will be broken into multiple lines.
+AllowShortFunctionsOnASingleLine: None
+AllowShortCaseLabelsOnASingleLine: false
+AllowShortIfStatementsOnASingleLine: false
+AllowShortLoopsOnASingleLine: false
+ReflowComments: true
+
+# --- Include Management ---
+# Automatically sort #include directives to keep them clean.
+SortIncludes: true
+# Group includes into categories.
+IncludeBlocks: Regroup
+IncludeCategories:
+  # Matches C standard library headers (e.g., <stdio.h>).
+  # Catches headers in angle brackets that DO NOT contain a '/'.
+  - Regex:           '^<[^/]+\.h>'
+    Priority:        10
+
+  # Matches all other headers in angle brackets (e.g., <sys/socket.h>).
+  # This is the general-purpose rule for third-party libraries.
+  - Regex:           '^<.*\.h>'
+    Priority:        20
+
+  # Matches all local project headers (e.g., "cpu.h").
+  # This catches anything in double-quotes.
+  - Regex:           '^".*\.h"'
+    Priority:        30
+
+# --- Whitespace Control ---
+
+# The number of empty lines to keep is at most 1.
+# Prevents large vertical gaps in the code.
+MaxEmptyLinesToKeep: 1
+
+# Add a space after the C-style cast, e.g., (int) x instead of (int)x.
+SpaceAfterCStyleCast: true
+SpaceBeforeParens: ControlStatements
+
+# Ensure that a file ends with a newline character.
+InsertNewlineAtEOF: true
