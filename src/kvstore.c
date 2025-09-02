@@ -76,7 +76,8 @@ void kvstore_destroy(KVStore *store) {
 	free(store);
 }
 
-KVStatus kvstore_set(KVStore *store, const char *key, const char *value) {
+KVStatus kvstore_set(KVStore *store, const char *key, const void *value,
+										 size_t value_len) {
 	if (store == NULL || key == NULL || value == NULL) {
 		return KV_ERROR_INVALID_ARGUMENT;
 	}
@@ -86,10 +87,14 @@ KVStatus kvstore_set(KVStore *store, const char *key, const char *value) {
 	KVEntry *curr_entry = store->entries[index];
 	while (curr_entry != NULL) {
 		if (strcmp(curr_entry->key, key) == 0) {
-			free(curr_entry->value);
-			curr_entry->value = strdup(value);
-			if (curr_entry->value == NULL) {
+			void *new_value = realloc(curr_entry->value, value_len);
+			if (new_value == NULL && value_len > 0) {
 				return KV_ERROR_OUT_OF_MEMORY;
+			}
+			curr_entry->value = new_value;
+			curr_entry->value_len = value_len;
+			if (curr_entry->value_len > 0) {
+				memcpy(curr_entry->value, value, curr_entry->value_len);
 			}
 			return KV_SUCCESS;
 		}
@@ -108,12 +113,21 @@ KVStatus kvstore_set(KVStore *store, const char *key, const char *value) {
 		return KV_ERROR_OUT_OF_MEMORY;
 	}
 	new_entry->key = strdup(key);
-	new_entry->value = strdup(value);
-	if (new_entry->key == NULL || new_entry->value == NULL) {
-		free(new_entry->key);
-		free(new_entry->value);
+	if (new_entry->key == NULL) {
 		free(new_entry);
 		return KV_ERROR_OUT_OF_MEMORY;
+	}
+	new_entry->value_len = value_len;
+	if (value_len > 0) {
+		new_entry->value = malloc(value_len);
+		if (new_entry->value == NULL) {
+			free(new_entry->key);
+			free(new_entry);
+			return KV_ERROR_OUT_OF_MEMORY;
+		}
+		memcpy(new_entry->value, value, value_len);
+	} else {
+		new_entry->value = NULL;
 	}
 
 	new_entry->next = store->entries[index];
@@ -152,7 +166,8 @@ KVStatus kvstore_delete(KVStore *store, const char *key) {
 	return KV_ERROR_KEY_NOT_FOUND;
 }
 
-const char *kvstore_get(KVStore *store, const char *key) {
+const void *kvstore_get(KVStore *store, const char *key,
+												size_t *value_len_out) {
 	if (store == NULL || key == NULL) {
 		return NULL;
 	}
@@ -162,6 +177,9 @@ const char *kvstore_get(KVStore *store, const char *key) {
 	KVEntry *curr_entry = store->entries[index];
 	while (curr_entry != NULL) {
 		if (strcmp(curr_entry->key, key) == 0) {
+			if (value_len_out != NULL) {
+				*value_len_out = curr_entry->value_len;
+			}
 			return curr_entry->value;
 		}
 		curr_entry = curr_entry->next;

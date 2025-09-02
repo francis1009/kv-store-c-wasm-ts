@@ -14,7 +14,8 @@ typedef enum {
 
 typedef struct KVEntry {
 	char *key;
-	char *value;
+	void *value;
+	size_t value_len;
 	struct KVEntry *next;
 } KVEntry;
 
@@ -26,8 +27,9 @@ typedef struct {
 
 KVStore *kvstore_init(void);
 void kvstore_destroy(KVStore *store);
-KVStatus kvstore_set(KVStore *store, const char *key, const char *value);
+KVStatus kvstore_set(KVStore *store, const char *key, const void *value,
+										 size_t value_len);
 KVStatus kvstore_delete(KVStore *store, const char *key);
-const char *kvstore_get(KVStore *store, const char *key);
+const void *kvstore_get(KVStore *store, const char *key, size_t *value_len_out);
 
 #endif
