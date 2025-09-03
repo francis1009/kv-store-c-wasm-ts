@@ -1,10 +1,12 @@
 #include "kvstore.h"
 
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #define INITIAL_CAPACITY 32
+#define SNAPSHOT_FILENAME "kvstore.snapshot"
 
 static unsigned long hash(const char *key) {
 	unsigned long hash = 5381;
@@ -74,6 +76,71 @@ void kvstore_destroy(KVStore *store) {
 
 	free(store->entries);
 	free(store);
+}
+
+void kvstore_save(KVStore *store) {
+	if (store == NULL) {
+		return;
+	}
+
+	FILE *snapshot = fopen(SNAPSHOT_FILENAME, "wb");
+	if (snapshot == NULL) {
+		perror("Error opening snapshot file for writing");
+		return;
+	}
+
+	for (size_t i = 0; i < store->capacity; i++) {
+		KVEntry *entry = store->entries[i];
+		while (entry != NULL) {
+			uint32_t key_len = strlen(entry->key);
+			fwrite(&key_len, sizeof(uint32_t), 1, snapshot);
+			fwrite(entry->key, key_len, 1, snapshot);
+			uint64_t val_len = entry->value_len;
+			fwrite(&val_len, sizeof(uint64_t), 1, snapshot);
+			fwrite(entry->value, val_len, 1, snapshot);
+			entry = entry->next;
+		}
+	}
+
+	fclose(snapshot);
+}
+
+void kvstore_load(KVStore *store) {
+	if (store == NULL) {
+		return;
+	}
+	FILE *snapshot = fopen(SNAPSHOT_FILENAME, "rb");
+	if (snapshot == NULL) {
+		return;
+	}
+
+	uint32_t key_len;
+	while (fread(&key_len, sizeof(uint32_t), 1, snapshot) == 1) {
+		char *key = malloc(key_len + 1);
+		if (fread(key, key_len, 1, snapshot) != 1) {
+			break;
+		}
+		key[key_len] = '\0';
+
+		uint64_t val_len;
+		if (fread(&val_len, sizeof(uint64_t), 1, snapshot) != 1) {
+			free(key);
+			break;
+		}
+
+		void *value = malloc(val_len);
+		if (val_len > 0 && fread(value, val_len, 1, snapshot) != 1) {
+			free(key);
+			free(value);
+			break;
+		}
+
+		kvstore_set(store, key, value, val_len);
+		free(key);
+		free(value);
+	}
+
+	fclose(snapshot);
 }
 
 KVStatus kvstore_set(KVStore *store, const char *key, const void *value,

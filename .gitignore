@@ -67,3 +67,6 @@ compile_commands.json
 
 # IDE and Editor configs
 /.vscode/
+
+# Snapshots
+kvstore.snapshot
