@@ -1,9 +1,15 @@
-#include "kvstore.h"
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#else
+#define EMSCRIPTEN_KEEPALIVE
+#endif
 
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include "kvstore.h"
 
 #define INITIAL_CAPACITY 32
 #define SNAPSHOT_FILENAME "kvstore.snapshot"
@@ -43,6 +49,7 @@ static int resize(KVStore *store) {
 	return 0;
 }
 
+EMSCRIPTEN_KEEPALIVE
 KVStore *kvstore_init(void) {
 	KVStore *store = malloc(sizeof(KVStore));
 	if (store == NULL) {
@@ -58,6 +65,7 @@ KVStore *kvstore_init(void) {
 	return store;
 }
 
+EMSCRIPTEN_KEEPALIVE
 void kvstore_destroy(KVStore *store) {
 	if (store == NULL) {
 		return;
@@ -78,6 +86,7 @@ void kvstore_destroy(KVStore *store) {
 	free(store);
 }
 
+EMSCRIPTEN_KEEPALIVE
 void kvstore_save(KVStore *store) {
 	if (store == NULL) {
 		return;
@@ -106,6 +115,7 @@ void kvstore_save(KVStore *store) {
 	fclose(snapshot);
 }
 
+EMSCRIPTEN_KEEPALIVE
 void kvstore_load(KVStore *store) {
 	if (store == NULL) {
 		return;
@@ -144,6 +154,7 @@ void kvstore_load(KVStore *store) {
 	fclose(snapshot);
 }
 
+EMSCRIPTEN_KEEPALIVE
 KVStatus kvstore_set(KVStore *store, const char *key, const void *value,
 										 size_t value_len) {
 	if (store == NULL || key == NULL || value == NULL) {
@@ -205,6 +216,7 @@ KVStatus kvstore_set(KVStore *store, const char *key, const void *value,
 	return KV_SUCCESS;
 }
 
+EMSCRIPTEN_KEEPALIVE
 KVStatus kvstore_delete(KVStore *store, const char *key) {
 	if (store == NULL || key == NULL) {
 		return KV_ERROR_INVALID_ARGUMENT;
@@ -234,6 +246,7 @@ KVStatus kvstore_delete(KVStore *store, const char *key) {
 	return KV_ERROR_KEY_NOT_FOUND;
 }
 
+EMSCRIPTEN_KEEPALIVE
 const void *kvstore_get(KVStore *store, const char *key,
 												size_t *value_len_out) {
 	if (store == NULL || key == NULL) {
