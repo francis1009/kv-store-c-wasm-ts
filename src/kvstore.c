@@ -95,9 +95,10 @@ void kvstore_save(KVStore *store) {
 			uint32_t key_len = strlen(entry->key);
 			fwrite(&key_len, sizeof(uint32_t), 1, snapshot);
 			fwrite(entry->key, key_len, 1, snapshot);
-			uint64_t val_len = entry->value_len;
-			fwrite(&val_len, sizeof(uint64_t), 1, snapshot);
-			fwrite(entry->value, val_len, 1, snapshot);
+			uint64_t value_len = entry->value_len;
+
+			fwrite(&value_len, sizeof(uint64_t), 1, snapshot);
+			fwrite(entry->value, value_len, 1, snapshot);
 			entry = entry->next;
 		}
 	}
@@ -122,20 +123,20 @@ void kvstore_load(KVStore *store) {
 		}
 		key[key_len] = '\0';
 
-		uint64_t val_len;
-		if (fread(&val_len, sizeof(uint64_t), 1, snapshot) != 1) {
+		uint64_t value_len;
+		if (fread(&value_len, sizeof(uint64_t), 1, snapshot) != 1) {
 			free(key);
 			break;
 		}
 
-		void *value = malloc(val_len);
-		if (val_len > 0 && fread(value, val_len, 1, snapshot) != 1) {
+		void *value = malloc(value_len);
+		if (value_len > 0 && fread(value, value_len, 1, snapshot) != 1) {
 			free(key);
 			free(value);
 			break;
 		}
 
-		kvstore_set(store, key, value, val_len);
+		kvstore_set(store, key, value, value_len);
 		free(key);
 		free(value);
 	}
